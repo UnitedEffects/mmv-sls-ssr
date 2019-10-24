@@ -1,4 +1,4 @@
-service: SLS_SSR
+service: SLS-SSR
 
 provider:
   name: aws
@@ -15,6 +15,13 @@ provider:
 package:
   exclude:
     - src/**
+    - .idea/**
+    - yarn.ock
+    - yarn-error.log
+    - README.md
+    - .gitignore
+    - serverless.copy.yaml
+    - .git
 
 plugins:
  - serverless-domain-manager

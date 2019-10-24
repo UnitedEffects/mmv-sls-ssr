@@ -1,5 +1,5 @@
 dist/
-serverless/
+.serverless/
 node_modules/
 serverless.yaml
 .idea/

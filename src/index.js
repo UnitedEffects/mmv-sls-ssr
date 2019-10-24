@@ -1,4 +1,5 @@
-import "@babel/polyfill"
+import "core-js/stable";
+import "regenerator-runtime/runtime";
 import sls from 'serverless-http';
 import express from 'express';
 import proxy from 'express-http-proxy';
