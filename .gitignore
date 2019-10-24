@@ -3,3 +3,4 @@ serverless/
 node_modules/
 serverless.yaml
 .idea/
+yarn-error.log

@@ -1,4 +1,5 @@
 import "@babel/polyfill"
+import sls from 'serverless-http';
 import express from 'express';
 import proxy from 'express-http-proxy';
 import puppeteer from 'puppeteer';
@@ -66,6 +67,15 @@ async function middleCheck(req, res, next) {
     return res.send(await ssr(proxyUrl));
 };
 
-app.use([middleCheck], proxy(PROXY_URL));
+const normalizePort = (val) => {
+    const port = parseInt(val, 10);
+    if (isNaN(port)) return val;
+    if (port >= 0) return port;
+    return false;
+};
 
-app.listen(8080);
+app.use([middleCheck], proxy(PROXY_URL));
+const port = normalizePort(process.env.PORT || '8080');
+app.set('port', port);
+if (process.env.RUN_LOCAL==='true') app.listen(port);
+else module.exports.handler = sls(app);

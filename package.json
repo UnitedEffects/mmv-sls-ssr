@@ -1,5 +1,5 @@
 {
-  "name": "sls-express-render",
+  "name": "sls-ssr",
   "version": "1.0.0",
   "description": "A function using express middleware and chrome renderton to serve ssr content",
   "main": "index.js",
@@ -7,14 +7,17 @@
   "license": "MIT",
   "private": false,
   "scripts": {
-    "start": "node ./dist/index.js",
-    "build": "yarn && babel src -d dist"
+    "start": "RUN_LOCAL=true node ./dist/index.js",
+    "build": "yarn && babel src -d dist",
+    "package": "RUN_LOCAL=false yarn && babel src -d dist && rm -rf ./node_modules/ && yarn --production && sls package",
+    "deploy": "RUN_LOCAL=false yarn && babel src -d dist && rm -rf ./node_modules/ && yarn --production && sls deploy"
   },
   "dependencies": {
     "@babel/polyfill": "^7.6.0",
     "express": "^4.17.1",
     "express-http-proxy": "^1.6.0",
-    "puppeteer": "^1.20.0"
+    "puppeteer": "^1.20.0",
+    "serverless-http": "^2.3.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.6.4",

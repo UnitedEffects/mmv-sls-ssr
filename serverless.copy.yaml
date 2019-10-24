@@ -1,0 +1,40 @@
+service: SLS_SSR
+
+provider:
+  name: aws
+  runtime: nodejs10.x
+  stage: production
+  env: production
+  region: us-east-1
+  timeout: 15
+  environment:
+    PROXY_URL: static.content.origin.com
+    TRIGGER_PATH: /examplePath/
+
+
+package:
+  exclude:
+    - src/**
+
+plugins:
+ - serverless-domain-manager
+ - serverless-apigw-binary
+
+custom:
+  customDomain:
+    domainName: example.com
+    basePath: ''
+    stage: ${self:provider.stage}
+    createRoute53Record: true
+  apigwBinary:
+    types:
+      - 'multipart/form-data'
+      - 'image/jpeg'
+      - 'image/png'
+
+functions:
+  app:
+    handler: dist/index.handler
+    events:
+      - http: ANY /
+      - http: 'ANY {proxy+}'
