@@ -2,3 +2,4 @@ dist/
 serverless/
 node_modules/
 serverless.yaml
+.idea/
