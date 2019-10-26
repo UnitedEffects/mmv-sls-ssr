@@ -7,23 +7,25 @@
   "license": "MIT",
   "private": false,
   "scripts": {
-    "start": "RUN_LOCAL=true node ./dist/index.js",
     "build": "yarn && babel src -d dist",
-    "package": "RUN_LOCAL=false yarn && babel src -d dist && rm -rf ./node_modules/ && yarn --production && node-prune && sls package",
-    "deploy": "RUN_LOCAL=false yarn && babel src -d dist && rm -rf ./node_modules/ && yarn --production && node-prune && sls deploy"
+    "package": "yarn && babel src -d dist && sls package",
+    "deploy": "yarn && babel src -d dist && sls deploy"
   },
   "dependencies": {
+    "@serverless-chrome/lambda": "^1.0.0-55",
     "core-js": "^3.3.3",
     "express": "^4.17.1",
     "express-http-proxy": "^1.6.0",
-    "puppeteer": "^1.20.0",
+    "puppeteer-core": "^2.0.0",
     "regenerator-runtime": "^0.13.3",
-    "serverless-http": "^2.3.0"
+    "serverless-http": "^2.3.0",
+    "superagent": "^5.1.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.6.4",
     "@babel/core": "^7.6.4",
     "@babel/preset-env": "^7.6.3",
+    "chrome-launcher": "^0.11.2",
     "serverless-apigw-binary": "^0.4.4",
     "serverless-domain-manager": "^3.3.0"
   }

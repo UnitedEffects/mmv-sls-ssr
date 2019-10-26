@@ -16,7 +16,8 @@ package:
   exclude:
     - src/**
     - .idea/**
-    - yarn.ock
+    - yarn.lock
+    - babel.config.js
     - yarn-error.log
     - README.md
     - .gitignore

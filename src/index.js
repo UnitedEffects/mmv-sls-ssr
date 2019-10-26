@@ -3,7 +3,8 @@ import "regenerator-runtime/runtime";
 import sls from 'serverless-http';
 import express from 'express';
 import proxy from 'express-http-proxy';
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
+import getChrome from './connect';
 const app = express();
 
 const PROXY_URL = process.env.PROXY_URL;
@@ -42,8 +43,12 @@ const staticFileExtensions = [
 const userAgentPattern = new RegExp(botUserAgents.join('|'), 'i');
 const excludeUrlPattern = new RegExp(`\\.(${staticFileExtensions.join('|')})$`, 'i');
 
-async function ssr(url) {
-    const browser = await puppeteer.launch({headless: true});
+async function chromeSsr(url) {
+    console.info('attempting to launch Chrome');
+    const chrome = await getChrome();
+    console.info(chrome);
+    if (!chrome.didLaunch) throw 'Chrome did not launch';
+    const browser = await puppeteer.connect({browserWSEndpoint: chrome.endpoint});
     const page = await browser.newPage();
     await page.goto(url, {waitUntil: 'networkidle0'});
     const html = await page.content(); // serialized HTML of page DOM.
@@ -52,31 +57,32 @@ async function ssr(url) {
 }
 
 async function middleCheck(req, res, next) {
-    const ua = req.headers['user-agent'];
-    let proxyUrl = PROXY_URL;
-    let trigger = false;
-    if (req.originalUrl.includes(TRIGGER_PATH)) {
-        trigger = true;
-        proxyUrl = `${PROXY_URL}/#${req.originalUrl}`;
+    try {
+        const ua = req.headers['user-agent'];
+        let proxyUrl = PROXY_URL;
+        let trigger = false;
+        if (req.originalUrl.includes(TRIGGER_PATH)) {
+            trigger = true;
+            proxyUrl = `${PROXY_URL}/#${req.originalUrl}`;
+        }
+        if (ua === undefined || !userAgentPattern.test(ua) ||
+            excludeUrlPattern.test(req.path)) {
+            if (!trigger) return next();
+            const redirect = `${req.protocol}://${req.get('host')}/#${req.originalUrl}`;
+            return res.redirect(redirect);
+        }
+        return res.send(await chromeSsr(proxyUrl));
+    } catch (error) {
+        console.error(error);
+        if (req.originalUrl.includes(TRIGGER_PATH)) {
+            const redirect = `${req.protocol}://${req.get('host')}/#${req.originalUrl}`;
+            return res.redirect(redirect);
+        }
+        return next();
     }
-    if (ua === undefined || !userAgentPattern.test(ua) ||
-        excludeUrlPattern.test(req.path)) {
-        if (!trigger) return next();
-        const redirect = `${req.protocol}://${req.get('host')}/#${req.originalUrl}`;
-        return res.redirect(redirect);
-    }
-    return res.send(await ssr(proxyUrl));
-};
-
-const normalizePort = (val) => {
-    const port = parseInt(val, 10);
-    if (isNaN(port)) return val;
-    if (port >= 0) return port;
-    return false;
-};
+}
 
 app.use([middleCheck], proxy(PROXY_URL));
-const port = normalizePort(process.env.PORT || '8080');
-app.set('port', port);
-if (process.env.RUN_LOCAL==='true') app.listen(port);
-else module.exports.handler = sls(app);
+app.set('port', 8080);
+
+module.exports.handler = sls(app);
