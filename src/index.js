@@ -4,7 +4,7 @@ import sls from 'serverless-http';
 import express from 'express';
 import proxy from 'express-http-proxy';
 import puppeteer from 'puppeteer-core';
-import getChrome from './connect';
+import chrome from 'chrome-aws-lambda';
 const app = express();
 
 const PROXY_URL = process.env.PROXY_URL;
@@ -45,12 +45,15 @@ const excludeUrlPattern = new RegExp(`\\.(${staticFileExtensions.join('|')})$`, 
 
 async function chromeSsr(url) {
     console.info('attempting to launch Chrome');
-    const chrome = await getChrome();
-    console.info(chrome);
-    if (!chrome.didLaunch) throw 'Chrome did not launch';
-    const browser = await puppeteer.connect({browserWSEndpoint: chrome.endpoint});
+    const browser = await puppeteer.launch({
+        args: chrome.args,
+        defaultViewport: chrome.defaultViewport,
+        executablePath: await chrome.executablePath,
+        headless: chrome.headless,
+    });
+    console.info('Launched and connected to chrome');
     const page = await browser.newPage();
-    await page.goto(url, {waitUntil: 'networkidle0'});
+    await page.goto(url, {timeout: 10000, waitUntil: 'networkidle0'});
     const html = await page.content(); // serialized HTML of page DOM.
     await browser.close();
     return html;
@@ -59,6 +62,7 @@ async function chromeSsr(url) {
 async function middleCheck(req, res, next) {
     try {
         const ua = req.headers['user-agent'];
+        console.log(`user agent: ${ua}`);
         let proxyUrl = PROXY_URL;
         let trigger = false;
         if (req.originalUrl.includes(TRIGGER_PATH)) {
@@ -84,5 +88,5 @@ async function middleCheck(req, res, next) {
 
 app.use([middleCheck], proxy(PROXY_URL));
 app.set('port', 8080);
-
+//app.listen(8080);
 module.exports.handler = sls(app);
