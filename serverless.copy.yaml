@@ -2,7 +2,7 @@ service: SLS-SSR
 
 provider:
   name: aws
-  runtime: nodejs10.x
+  runtime: nodejs8.10
   stage: production
   env: production
   region: us-east-1
@@ -23,6 +23,7 @@ package:
     - .gitignore
     - serverless.copy.yaml
     - .git
+    - node_modules/puppeteer/.local-chromium/**
 
 plugins:
  - serverless-domain-manager
@@ -39,10 +40,29 @@ custom:
       - 'multipart/form-data'
       - 'image/jpeg'
       - 'image/png'
+      - 'font/ttf'
+      - 'font/woff'
+      - 'font/woff2'
+      - 'image/bmp'
+      - 'image/gif'
+      - 'image/jpeg'
+      - 'image/png'
+      - 'image/svg+xml'
+      - 'image/tiff'
+      - 'image/webp'
+      - 'image/x-icon'
+      - 'image/svg'
+      - 'application/font-woff'
+      - 'binary/octet-stream'
+      - 'application/octet-stream'
+      - '*/*'
 
 functions:
   app:
     handler: dist/index.handler
     events:
       - http: ANY /
-      - http: 'ANY {proxy+}'
+      - http:
+          method: ANY
+          path: '{proxy+}'
+          contentHandling: CONVERT_TO_BINARY
