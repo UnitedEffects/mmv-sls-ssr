@@ -2,5 +2,6 @@ dist/
 .serverless/
 node_modules/
 serverless.yaml
+serverless-old.yaml
 .idea/
 yarn-error.log
