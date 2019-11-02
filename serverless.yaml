@@ -1,0 +1,53 @@
+service: cf-ssr
+
+provider:
+  name: aws
+  runtime: nodejs10.x
+  stage: qa
+  env: qa
+  region: us-east-1
+  timeout: 20
+  role: LambdaEdgeRole
+
+package:
+  exclude:
+    - src/**
+    - .idea/**
+    - yarn.lock
+    - babel.config.js
+    - yarn-error.log
+    - README.md
+    - .gitignore
+    - serverless.copy.yaml
+    - .git
+    - node_modules/puppeteer/.local-chromium/**
+
+functions:
+  cfLambda:
+    handler: dist/index.handler
+
+resources:
+  Resources:
+    LambdaEdgeRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - edgelambda.amazonaws.com
+                - lambda.amazonaws.com
+            Action:
+            - sts:AssumeRole
+        Policies:
+          - PolicyName: LambdaEdgeExecutionRole
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - logs:CreateLogGroup
+                    - logs:CreateLogStream
+                    - logs:PutLogEvents
+                  Resource: "arn:aws:logs:*:*:*"

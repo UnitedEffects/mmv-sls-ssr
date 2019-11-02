@@ -1,7 +1,7 @@
 {
   "name": "sls-ssr",
   "version": "1.0.0",
-  "description": "A function using express middleware and chrome renderton to serve ssr content",
+  "description": "A function to execute on lambda@edge via cloudfront that provides SSR by user-agent.",
   "main": "index.js",
   "author": "borzou@theboeffect.com",
   "license": "MIT",
