@@ -1,11 +1,9 @@
+'use strict';
+
 import "core-js/stable";
 import "regenerator-runtime/runtime";
-import sls from 'serverless-http';
-import express from 'express';
-import proxy from 'express-http-proxy';
 import puppeteer from 'puppeteer-core';
 import chrome from 'chrome-aws-lambda';
-const app = express();
 
 const PROXY_URL = process.env.PROXY_URL;
 const TRIGGER_PATH = process.env.TRIGGER_PATH;
@@ -59,6 +57,7 @@ async function chromeSsr(url) {
     return html;
 }
 
+/*
 async function middleCheck(req, res, next) {
     try {
         const ua = req.headers['user-agent'];
@@ -91,8 +90,14 @@ async function middleCheck(req, res, next) {
         return next();
     }
 }
+*/
 
-app.use([middleCheck], proxy(PROXY_URL));
-app.set('port', 8080);
-//app.listen(8080);
-module.exports.handler = sls(app);
+module.exports.handler = (event, context, callback) => {
+    const response = event.Records[0].cf.response;
+    const headers = response.headers;
+
+    headers['x-serverless-time'] = [{ key: 'x-serverless-time', value: Date.now().toString() }];
+    headers['x-testing-custom'] = 'BO THIS WORKED';
+
+    return callback(null, response);
+};
