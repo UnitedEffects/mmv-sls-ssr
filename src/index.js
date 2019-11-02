@@ -5,7 +5,7 @@ import "regenerator-runtime/runtime";
 import puppeteer from 'puppeteer-core';
 import chrome from 'chrome-aws-lambda';
 
-const HOST_URL = 'https://test.mailmyvoice.com';
+const HOST_URL = 'https://mailmyvoice.com';
 const TRIGGER = '/catalog/';
 
 const botUserAgents = [
