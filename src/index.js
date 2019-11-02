@@ -1,14 +1,12 @@
+'use strict';
+
 import "core-js/stable";
 import "regenerator-runtime/runtime";
-import sls from 'serverless-http';
-import express from 'express';
-import proxy from 'express-http-proxy';
 import puppeteer from 'puppeteer-core';
 import chrome from 'chrome-aws-lambda';
-const app = express();
 
-const PROXY_URL = process.env.PROXY_URL;
-const TRIGGER_PATH = process.env.TRIGGER_PATH;
+const HOST_URL = 'https://test.mailmyvoice.com';
+const TRIGGER = '/catalog/';
 
 const botUserAgents = [
     'Baiduspider',
@@ -59,40 +57,62 @@ async function chromeSsr(url) {
     return html;
 }
 
-async function middleCheck(req, res, next) {
-    try {
-        const ua = req.headers['user-agent'];
-        console.log(`user agent: ${ua}`);
-        let proxyUrl = PROXY_URL;
-        let trigger = false;
-        if (req.originalUrl.includes(TRIGGER_PATH)) {
-            trigger = true;
-            proxyUrl = `${PROXY_URL}/#${req.originalUrl}`;
-        }
-        if (ua === undefined || !userAgentPattern.test(ua) ||
-            excludeUrlPattern.test(req.path)) {
-            if (!trigger) {
-                res.header('Access-Control-Allow-Origin', '*');
-                res.header('Access-Control-Allow-Headers', '*');
-                return next();
-            }
-            const redirect = `${req.protocol}://${req.get('host')}/#${req.originalUrl}`;
-            return res.redirect(redirect);
-        }
-        return res.send(await chromeSsr(proxyUrl));
-    } catch (error) {
-        console.error(error);
-        if (req.originalUrl.includes(TRIGGER_PATH)) {
-            const redirect = `${req.protocol}://${req.get('host')}/#${req.originalUrl}`;
-            return res.redirect(redirect);
-        }
-        res.header('Access-Control-Allow-Origin', '*');
-        res.header('Access-Control-Allow-Headers', '*');
-        return next();
+module.exports.handler = async (event, context, callback) => {
+    const request = event.Records[0].cf.request;
+    //console.info('REQUEST RECEIVED');
+    //console.info(JSON.stringify(request, null, 2));
+    let hostUrl = HOST_URL;
+    let trigger = false;
+    let response;
+    const ua = (request.headers['user-agent']) ? request.headers['user-agent'][0].value : undefined;
+    if (request.uri.includes(TRIGGER)) {
+        trigger = true;
+        hostUrl = `${hostUrl}/#${request.uri}`;
     }
-}
-
-app.use([middleCheck], proxy(PROXY_URL));
-app.set('port', 8080);
-//app.listen(8080);
-module.exports.handler = sls(app);
+    if (ua === undefined || !userAgentPattern.test(ua) ||
+        excludeUrlPattern.test(request.uri)) {
+        if (trigger) {
+            response = {
+                status: '302',
+                statusDescription: 'Found',
+                headers: {
+                    location: [{
+                        key: 'Location',
+                        value: hostUrl,
+                    }],
+                },
+            };
+            //console.info('REDIRECTING BASED ON TRIGGER');
+            return callback(null, response);
+        }
+        //console.info('PASS THROUGH');
+        return callback(null, request);
+    }
+    //console.info('NEED TO RENDER SSR');
+    const content = await chromeSsr(hostUrl);
+    response = {
+        status: '200',
+        statusDescription: 'OK',
+        headers: {
+            'cache-control': [{
+                key: 'Cache-Control',
+                value: 'max-age=100'
+            }],
+            'content-type': [{
+                key: 'Content-Type',
+                value: 'text/html'
+            }],
+            'content-encoding': [{
+                key: 'Content-Encoding',
+                value: 'UTF-8'
+            }],
+            'x-linkbot-found': [{
+                key: 'x-linkbot-found',
+                value: 'true'
+            }]
+        },
+        body: content,
+    };
+    //console.info('SENDING SSR');
+    return callback(null, response);
+};
