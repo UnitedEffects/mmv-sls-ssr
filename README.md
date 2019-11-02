@@ -17,6 +17,7 @@ Additionally, I've optimized this for our current SPA which doesn't use root pat
 
 ## Deploy
 
+* There's nothing fancy going on here, so if you want your staging to be somethign specific, manually update the serverless.yml file (lines 6 & 7)
 * yarn deploy
 
 ## CloudFront Trigger
