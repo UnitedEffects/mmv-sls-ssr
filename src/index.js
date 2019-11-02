@@ -71,7 +71,11 @@ async function middleCheck(req, res, next) {
         }
         if (ua === undefined || !userAgentPattern.test(ua) ||
             excludeUrlPattern.test(req.path)) {
-            if (!trigger) return next();
+            if (!trigger) {
+                res.header('Access-Control-Allow-Origin', '*');
+                res.header('Access-Control-Allow-Headers', '*');
+                return next();
+            }
             const redirect = `${req.protocol}://${req.get('host')}/#${req.originalUrl}`;
             return res.redirect(redirect);
         }
@@ -82,6 +86,8 @@ async function middleCheck(req, res, next) {
             const redirect = `${req.protocol}://${req.get('host')}/#${req.originalUrl}`;
             return res.redirect(redirect);
         }
+        res.header('Access-Control-Allow-Origin', '*');
+        res.header('Access-Control-Allow-Headers', '*');
         return next();
     }
 }
