@@ -6,7 +6,8 @@ provider:
   stage: production
   env: production
   region: us-east-1
-  timeout: 20
+  memorySize: 1280
+  timeout: 30
   role: LambdaEdgeRole
 
 package:
