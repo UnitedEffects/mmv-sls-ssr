@@ -5,14 +5,17 @@ import "regenerator-runtime/runtime";
 import puppeteer from 'puppeteer-core';
 import chrome from 'chrome-aws-lambda';
 
-const HOST_URL = 'https://test.mailmyvoice.com';
+const HOST_URL = 'https://mailmyvoice.com';
 const TRIGGER = '/catalog/';
 
 const botUserAgents = [
     'Baiduspider',
     'bingbot',
+    'Bingbot',
+    'BingBot',
     'Embedly',
     'facebookexternalhit',
+    'Facebot',
     'LinkedInBot',
     'outbrain',
     'pinterest',
@@ -27,7 +30,10 @@ const botUserAgents = [
     'WhatsApp',
     'Applebot',
     'Googlebot',
-    'Instagram'
+    'GoogleBot',
+    'googlebot',
+    'ia_archiver',
+    'HeadlessChrome'
 ];
 
 const staticFileExtensions = [
@@ -49,22 +55,21 @@ async function chromeSsr(url) {
         executablePath: await chrome.executablePath,
         headless: chrome.headless,
     });
-    console.info('Launched and connected to chrome');
+    //console.info('Launched and connected to chrome');
     const page = await browser.newPage();
-    await page.goto(url, {timeout: 10000, waitUntil: 'networkidle0'});
-    const html = await page.content(); // serialized HTML of page DOM.
+    await page.goto(url, {timeout: 28000, waitUntil: 'networkidle0'});
+    const html = await page.content();
     await browser.close();
     return html;
 }
 
 module.exports.handler = async (event, context, callback) => {
     const request = event.Records[0].cf.request;
-    //console.info('REQUEST RECEIVED');
-    //console.info(JSON.stringify(request, null, 2));
     let hostUrl = HOST_URL;
     let trigger = false;
     let response;
     const ua = (request.headers['user-agent']) ? request.headers['user-agent'][0].value : undefined;
+    //console.info(`User Agent: ${ua}`);
     if (request.uri.includes(TRIGGER)) {
         trigger = true;
         hostUrl = `${hostUrl}/#${request.uri}`;
@@ -82,37 +87,54 @@ module.exports.handler = async (event, context, callback) => {
                     }],
                 },
             };
-            //console.info('REDIRECTING BASED ON TRIGGER');
             return callback(null, response);
         }
-        //console.info('PASS THROUGH');
         return callback(null, request);
     }
-    //console.info('NEED TO RENDER SSR');
-    const content = await chromeSsr(hostUrl);
-    response = {
-        status: '200',
-        statusDescription: 'OK',
-        headers: {
-            'cache-control': [{
-                key: 'Cache-Control',
-                value: 'max-age=100'
-            }],
-            'content-type': [{
-                key: 'Content-Type',
-                value: 'text/html'
-            }],
-            'content-encoding': [{
-                key: 'Content-Encoding',
-                value: 'UTF-8'
-            }],
-            'x-linkbot-found': [{
-                key: 'x-linkbot-found',
-                value: 'true'
-            }]
-        },
-        body: content,
-    };
-    //console.info('SENDING SSR');
-    return callback(null, response);
+    try {
+        const content = await chromeSsr(hostUrl);
+        response = {
+            status: '200',
+            statusDescription: 'OK',
+            headers: {
+                'cache-control': [{
+                    key: 'Cache-Control',
+                    value: 'max-age=100'
+                }],
+                'content-type': [{
+                    key: 'Content-Type',
+                    value: 'text/html'
+                }],
+                'content-encoding': [{
+                    key: 'Content-Encoding',
+                    value: 'UTF-8'
+                }],
+                'x-linkbot-found': [{
+                    key: 'x-linkbot-found',
+                    value: 'true'
+                }]
+            },
+            body: content,
+        };
+        return callback(null, response);
+    } catch (error) {
+        console.info('Recording unexpected error');
+        console.error(error);
+        //console.info('Attempting fallback response');
+        if (trigger) {
+            response = {
+                status: '302',
+                statusDescription: 'Found',
+                headers: {
+                    location: [{
+                        key: 'Location',
+                        value: hostUrl,
+                    }],
+                },
+            };
+            return callback(null, response);
+        }
+        return callback(null, request);
+    }
+
 };
