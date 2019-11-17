@@ -2,7 +2,6 @@
 
 import "core-js/stable";
 import "regenerator-runtime/runtime";
-import puppeteer from 'puppeteer-core';
 import chrome from 'chrome-aws-lambda';
 
 const HOST_URL = 'https://mailmyvoice.com';
@@ -49,18 +48,27 @@ const excludeUrlPattern = new RegExp(`\\.(${staticFileExtensions.join('|')})$`, 
 
 async function chromeSsr(url) {
     console.info('attempting to launch Chrome');
-    const browser = await puppeteer.launch({
+    let browser = null;
+    browser = await chrome.puppeteer.launch({
         args: chrome.args,
         defaultViewport: chrome.defaultViewport,
         executablePath: await chrome.executablePath,
         headless: chrome.headless,
     });
-    //console.info('Launched and connected to chrome');
+    console.info('Launched and connected to chrome');
     const page = await browser.newPage();
-    await page.goto(url, {timeout: 28000, waitUntil: 'networkidle0'});
-    const html = await page.content();
-    await browser.close();
-    return html;
+    try {
+        await page.goto(url, {timeout: 27000, waitUntil: 'networkidle2'});
+        const html = await page.content();
+        await browser.close();
+        console.info('have content');
+        return html;
+    } catch (error) {
+        console.error(error);
+        console.info('closing browser');
+        if (browser !== null) await browser.close();
+        throw error;
+    }
 }
 
 module.exports.handler = async (event, context, callback) => {
@@ -69,7 +77,7 @@ module.exports.handler = async (event, context, callback) => {
     let trigger = false;
     let response;
     const ua = (request.headers['user-agent']) ? request.headers['user-agent'][0].value : undefined;
-    //console.info(`User Agent: ${ua}`);
+    console.info(`User Agent: ${ua}`);
     if (request.uri.includes(TRIGGER)) {
         trigger = true;
         hostUrl = `${hostUrl}/#${request.uri}`;
@@ -116,25 +124,14 @@ module.exports.handler = async (event, context, callback) => {
             },
             body: content,
         };
+        console.info('responding with content');
         return callback(null, response);
     } catch (error) {
-        console.info('Recording unexpected error');
+        console.info('Recording unexpected error rendering headless chrome');
         console.error(error);
-        //console.info('Attempting fallback response');
-        if (trigger) {
-            response = {
-                status: '302',
-                statusDescription: 'Found',
-                headers: {
-                    location: [{
-                        key: 'Location',
-                        value: hostUrl,
-                    }],
-                },
-            };
-            return callback(null, response);
-        }
+        console.info('Attempting fallback response');
+        if(trigger) request.uri = '/';
+        console.info(request);
         return callback(null, request);
     }
-
 };
