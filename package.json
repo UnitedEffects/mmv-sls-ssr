@@ -7,10 +7,10 @@
   "license": "MIT",
   "private": false,
   "scripts": {
-    "start": "node ./dist/index.js",
-    "build": "yarn && babel src -d dist",
-    "package": "yarn && babel src -d dist && sls package",
-    "deploy": "yarn && babel src -d dist && sls deploy"
+    "build": "yarn && yarn test && babel src -d dist",
+    "test": "jest",
+    "package": "yarn && yarn test && babel src -d dist && sls package",
+    "deploy": "yarn && yarn test && babel src -d dist && sls deploy"
   },
   "dependencies": {
     "chrome-aws-lambda": "^2.0.0",
@@ -22,6 +22,8 @@
     "@babel/cli": "^7.6.4",
     "@babel/core": "^7.6.4",
     "@babel/preset-env": "^7.6.3",
-    "chrome-launcher": "^0.11.2"
+    "chrome-launcher": "^0.11.2",
+    "jest": "^24.9.0",
+    "puppeteer": "^2.0.0"
   }
 }
